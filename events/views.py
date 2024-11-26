@@ -40,7 +40,6 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     
     def create(self, request, *args, **kwargs):
-        print(request.user.role)
         if request.user.role != 'ADMIN':
             return Response({'error':' Only Admins can create events'}, status=status.HTTP_403_FORBIDDEN)
         return super().create(request, *args, **kwargs)
@@ -59,17 +58,21 @@ class TicketViewSet(viewsets.ModelViewSet):
         role = request.user.role
         quantity = request.data.get('quantity')
 
+        # check if the role is admin
         if role == 'ADMIN':
             return Response({'error': 'Admin cannot purchase'}, status=status.HTTP_400_BAD_REQUEST)
         
+        # check whether there are sufficient tickets or not
         if (event.total_tickets - event.tickets_sold) < int(quantity):
             return Response({'error': 'Tickets not available'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # create ticket
         Ticket.objects.create(
             user=request.user,
             event=event,
             quantity=int(quantity)
         )
+        # update db
         event.tickets_sold += int(quantity)
         event.save()
 
